@@ -7,9 +7,9 @@
   if (isset($data['do_login'])) {
     $errors = array();
 
-    $user_name = $data['user_name'];
-    $user_password = $data['user_password'];
-    $user_role = $data['user_role'];
+    $user_name = $secure_data($data['user_name']);
+    $user_password = $secure_data($data['user_password']);
+    $user_role = $secure_data($data['user_role']);
 
     $user_query = pg_query_params($conn, 'SELECT * FROM person WHERE user_name = $1', Array($user_name));
     $user = pg_fetch_object($user_query);

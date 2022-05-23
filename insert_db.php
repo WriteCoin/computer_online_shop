@@ -9,6 +9,19 @@
     return pg_fetch_object($query)->id;
   }
 
+  function db_get_id_params($table, $key, $value) {
+    global $conn;
+    $table = query_escape($table);
+    $key = query_escape($key);
+    $value = query_escape($value);
+    if (gettype($value) == 'string') {
+      $value = '\'' . $value . '\'';
+    }
+    $query = pg_query($conn, "SELECT id FROM $table WHERE $key = $value");
+    // print_r($query);
+    return pg_fetch_object($query)->id;
+  }
+
   function db_clear($table) {
     global $conn;
     $query = pg_query($conn, "DELETE FROM $table");
@@ -43,6 +56,9 @@
   $subcategories_table = 'subcategories';
   $categories_table = 'categories';
   $products_table = 'products';
+  $ways_to_receive_table = "ways_to_receive";
+  $order_statuses = "order_statuses";
+  $payment_methods = "payment_methods";
 
   $personal_computers_name = 'Персональные компьютеры';
   $laptops_name = 'Ноутбуки';
@@ -63,7 +79,7 @@
   $webcams_name = 'Веб-камеры';
   $headphones_name = 'Наушники';
 
-  if (db_is_clear($property_types_table) && db_is_clear($data_types_table) && db_is_clear($measurement_units_table) && db_is_clear($subcategories_table) && db_is_clear($categories_table)) {
+  if (db_is_clear($property_types_table) && db_is_clear($data_types_table) && db_is_clear($measurement_units_table) && db_is_clear($subcategories_table) && db_is_clear($categories_table) && db_is_clear($ways_to_receive_table) && db_is_clear($order_statuses) && db_is_clear($payment_methods)) {
 
     pg_query($conn, "INSERT INTO $categories_table(category_name) VALUES
       ('Компьютеры, ноутбуки и ПО'),
@@ -89,6 +105,26 @@
     add_subcategory($mouse_pads_name, 'Периферия и аксессуары');
     add_subcategory($webcams_name, 'Периферия и аксессуары');
     add_subcategory($headphones_name, 'Периферия и аксессуары');
+
+    pg_query($conn, "INSERT INTO $ways_to_receive_table(way_to_receive_name) VALUES
+      ('Самовывоз'),
+      ('Доставка');
+    ");
+
+    pg_query($conn, "INSERT INTO $order_statuses(order_status_name) VALUES
+      ('В процессе подтверждения оператором'),
+      ('Готовится'),
+      ('Готовится к доставке'),
+      ('Доставляется'),
+      ('Выполнен'),
+      ('Готов к выдаче'),
+      ('Отменен');
+    ");
+
+    pg_query($conn, "INSERT INTO $payment_methods(payment_method_name) VALUES
+      ('Наличными при получении'),
+      ('Онлайн');
+    ");
 
     pg_query($conn, "INSERT INTO $measurement_units_table(measurement_unit_name) VALUES
       ('мес.'),

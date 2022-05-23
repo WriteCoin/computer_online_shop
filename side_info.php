@@ -18,6 +18,18 @@
 	</details>
 </div>
 
+<?php if (isset($client)) : ?>
+	<div class="layer-nav">
+		<!-- <form action="basket_view.php" method="post">
+			<button class="btn-nav" type="submit">Посмотреть корзину</button>
+		</form> -->
+		<button class="btn-nav" onclick="document.location = 'basket_view.php';">Посмотреть корзину</button>
+	</div>
+	<div class="layer-nav-right">
+		<button class="btn-nav" onclick="document.location = 'my_orders.php'">Мои заказы</button>
+	</div>
+<?php endif ?>
+
 <?php if (isset($moderator)) : ?>
 	<div class="layer-right">
 		<details>
@@ -50,22 +62,30 @@
 		</div>
 	</div>
 
-	<script type="text/javascript">
-		const apply_height_detail = function(div, heightClose, heightOpen) {
-			const $details = document.querySelector(div + ' details')
-			if ($details) $details.onclick = function() {
-				const $div = document.querySelector(div)
-				if ($div) {
-					if ($details.open) {
-						$div.style.height = heightClose;
-					} else {
-						$div.style.height = heightOpen;
-					}
+<?php endif ?>
+
+<script type="text/javascript">
+	const apply_height_detail = function(div, heightClose, heightOpen) {
+		const $details = document.querySelector(div + ' details')
+		console.log($details)
+		if ($details) $details.onclick = function() {
+			const $div = document.querySelector(div)
+			if ($div) {
+				if ($details.open) {
+					$div.style.height = heightClose;
+				} else {
+					$div.style.height = heightOpen;
 				}
 			}
 		}
+	}
 
-		apply_height_detail('.layer-right', '50px', '350px')
-		apply_height_detail('.layer-left', '50px', '500px')
-	</script>
+	apply_height_detail('.layer-right', '50px', '350px')
+	apply_height_detail('.layer-left', '50px', '500px')
+</script>
+
+<?php if (isset($operator)) : ?>
+	<div class="layer-nav">
+		<button class="btn-nav" onclick="document.location = 'delivery_points.php'">Пункты доставки</button>
+	</div>
 <?php endif ?>

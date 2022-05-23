@@ -1,20 +1,5 @@
 <?php
-  function getPostParam($key, $default) {
-    global $data;
-    if (isset($data[$key])) {
-      return $data[$key];
-    } else {
-      return $default;
-    }
-  }
-
-  function money_to_num($str) {
-    // $str = substr($str, 0, strlen($str) - 1);
-    $str = str_replace(' ', '', $str);
-    $str = str_replace(chr(194), '', $str);
-    $str = str_replace(chr(160), '', $str);
-    return floatval($str);
-  }
+  const IMG_SIZE = 2;
 
   if ($is_add || $is_edit) {
     $subcategories_query = pg_query($conn, "SELECT * FROM subcategories");
@@ -28,27 +13,26 @@
     }
     
     $subcategory_name = $subcategory->subcategory_name;
+    // echo $subcategory_name;
     $query_property_types = pg_query_params($conn, 'SELECT * FROM property_types WHERE subcategory_id = $1', Array($subcategory->id));
     
     $id = getPostParam('id', '');
     $product_name = getPostParam('product_name', '');
     $product_desc = getPostParam('product_desc', '');
+    $image_path = getPostParam('image_path', '');
     $price = getPostParam('price', '0');
     $price = money_to_num($price);
     $quantity_in_stock = getPostParam('quantity_in_stock', '1');
     $additional_bonus_count = getPostParam('additional_bonus_count', '0');
     $additional_bonus_count = money_to_num($additional_bonus_count);
   }
-
-  $MAX_PRICE = 500000;
-  $MAX_QUANTITY_IN_STOCK = 100;
 ?>
 
 <div class="layer-index">
   <h2><?= $title_product; ?></h2>
 
   <?php if ($is_add || $is_edit) : ?>
-    <form class='change-product'>
+    <form class='change-product' action='index.php' method="post" enctype="multipart/form-data">
       <input type="hidden" name="id" value="<?= $id; ?>">
 
       <div class="form-group">
@@ -99,6 +83,8 @@
                 } else {
                   $property_value = '';
                 }
+              } else if (isset($data['property_type' . $property_type->id])) {
+                $property_value = $data['property_type' . $property_type->id];
               } else {
                 $property_value = '';
               }
@@ -137,6 +123,41 @@
       </div>
 
       <div class="form-group">
+        <!-- <form action="index.php" method="post" enctype="multipart/form-data"> -->
+          <label for="img">Изображение товара (не более <?= IMG_SIZE ?> МБ):</label>
+          <input type="file" id="img" name="img" value="<?= isset($img) ? $img : ''; ?>">
+          <input type="submit" name="upload" value="Загрузить">
+          <?php
+            if (isset($data['upload'])) {
+              $file = $_FILES['img'];
+              $img_type = $file['type'];
+              $is_image = substr($img_type, 0, 5) === 'image';
+              $img_size = IMG_SIZE * (1024 ** 2);
+              $is_size = $file['size'] <= $img_size;
+              if (!empty($file['tmp_name']) && $is_image && $is_size) {
+                $img = addslashes(file_get_contents($file['tmp_name']));
+                // $img = $file['tmp_name'];
+                $image_path = "products";
+                $name = $file['name'];
+                move_uploaded_file($file['tmp_name'], $name);
+                echo 'Файл загружен';
+              }
+              if (!$is_image) {
+                $_SESSION['op_message_error'] = 'Загружаемый файл не является изображением';
+              }
+              if (!$is_size) {
+                $_SESSION['op_message_error'] = "Загружаемый файл слишком большой (весит более $IMG_SIZE МБ)";
+              }
+              ?>
+              <br><img src="<?= $name ?>" alt="Изображение отсутствует">
+              <input type="hidden" name="tmp_image_name" value="<?= $name ?>">
+            <?php } elseif (!empty($id)) { ?>
+              <img src="<?= $image_path ?>" alt="Изображение отсутствует">
+            <?php } ?>
+        <!-- </form> -->
+      </div>
+
+      <div class="form-group">
         <label for="product_desc">Описание товара:</label>
         <textarea name="product_desc" id="product_desc" cols="30" rows="10" value='<?= $product_desc; ?>' placeholder="Введите описание товара"><?= $product_desc; ?></textarea>
       </div>
@@ -166,12 +187,12 @@
   <?php else : ?>
     <?php while ($product = pg_fetch_object($products_query)) : ?>
       <div class="layer">
-        <form class="form-product">
+        <form class="form-product" action="add_basket.php" method="post">
 
           <input type="hidden" name="id" value="<?= $product->id; ?>">
 
           <input type="hidden" name="product_name" value="<?= $product->product_name; ?>">
-          <h4><?= $product->product_name; ?></h4>
+          <h4><a href="product_view.php?id=<?= $product->id ?>"><?= $product->product_name; ?></a></h4>
 
           <details>
             <summary>Характеристики</summary>
@@ -215,6 +236,11 @@
           <p><b>Описание товара:</b></p><br>
           <p><?= $product->product_desc; ?></p>
 
+          <input type="hidden" name="image_path" value="<?= $product->image_path; ?>">
+          <!-- <p><b>Изображение товара:</b></p><br> -->
+          <?php $show_img = base64_encode($product->image_path); ?>
+          <img src="data:image/jpeg;base64, <?php echo $show_img; ?>" alt="Изображение отсутствует">
+
           <?php
             $subcategory_query = pg_query_params($conn, 'SELECT * FROM subcategories WHERE id = $1', Array($product->subcategory_id));
             $subcategory = pg_fetch_object($subcategory_query);
@@ -233,7 +259,25 @@
           <p><b>Бонус: </b><?= $product->additional_bonus_count; ?></p>
 
           <?php if (isset($client)) : ?>
-            <button class="btn" id="product-button1" name="to_basket_product" type="submit">Добавить в корзину</button>
+            
+            <?php 
+              $query_client_products = pg_query_params($conn, 'SELECT * FROM client_products WHERE client_id = $1 AND product_id = $2', Array($client->id, $product->id));
+              $client_product = pg_fetch_object($query_client_products);
+              if ($client_product || (!$product->quantity_in_stock)) :
+                $is_disabled_button = "disabled";
+              else :
+                $is_disabled_button = "";
+              endif
+            ?>
+            <p>
+              <button class="btn" id="product-button1" name="to_basket_product" type="submit" <?= $is_disabled_button ?> onClick="return window.cofirm('onClick сраный');">Добавить в корзину</button>
+            <!-- <button class="btn" id="product-button1" name="to_basket_product" <?= $is_disabled_button ?> type="submit">Добавить товар в корзину</button> -->
+              <?php if ($is_disabled_button) : ?> 
+                <i>Товар добавлен в корзину</i> 
+                <br><br>
+                <button class="btn" name="to_remove_basket" type="submit">Удалить из корзины</button>
+              <?php endif ?>
+            </p>
           <?php elseif (isset($moderator)) : ?>
             <button class="btn" id="product-button1" name="do_edit_product" onClick="alert('Изменение')">Изменить товар</button>
             <button class="btn" id="product-button2" name="do_delete_product" type="submit" onClick="return window.confirm('Вы действительно хотите удалить данный товар?');">Удалить товар</button>
@@ -256,12 +300,12 @@
 
     let confirmResult
 
-    // const buttonOnSubmit = function(event) {
-    //   if (!confirmResult) {
-    //     event.preventDefault()
-    //     window.history.back()
-    //   }
-    // }
+    const buttonOnSubmit = function(event) {
+      if (!confirmResult) {
+        event.preventDefault()
+        window.history.back()
+      }
+    }
 
     const buttonOnClick = function(event) {
       const form = this.parentElement
@@ -270,6 +314,7 @@
       let isDetail
       if (this.name === 'to_basket_product') {
         formAction = 'add_basket.php'
+        // confirmStr = 'Добавить товар в корзину?';
       } else if (this.name === 'do_edit_product') {
         formAction = 'index.php'
       } else if (this.name === 'do_delete_product') {
@@ -299,8 +344,11 @@
       // event.preventDefault()
       // window.history.back()
 
+      console.log(formAction)
       form.action = formAction
       form.method = 'post'
+      
+      // form.submit()
     }
 
     const button1 = document.querySelector('#product-button1');

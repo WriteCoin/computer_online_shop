@@ -21,13 +21,7 @@
   require __DIR__ . '/header.php';
   require __DIR__ . '/connect.php';
 
-  if (isset($_SESSION['op_message'])) {
-    echo '<div style="color: white; ">' . $_SESSION['op_message'] . '</div><hr>';
-    unset($_SESSION['op_message']);
-  } else if (isset($_SESSION['op_message_error'])) {
-    echo '<div style="color: red; ">' . $_SESSION['op_message_error'] . '</div><hr>';
-    unset($_SESSION['op_message_error']);
-  }
+  site_message();
 
   if ($is_index) {
     require __DIR__ . '/side_info.php';
@@ -59,38 +53,40 @@
         <table class="table">
           <tr>
             <td><b>Имя:</b></td>
-            <td><?=htmlspecialchars($logged_user->first_name)?></td>
+            <td><?=$logged_user->first_name?></td>
           </tr>
           <tr>
             <td><b>Фамилия:</b></td>
-            <td><?=htmlspecialchars($logged_user->last_name)?></td>
+            <td><?=$logged_user->last_name?></td>
           </tr>
           <tr>
             <td><b>Логин:</b></td>
-            <td><?=htmlspecialchars($logged_user->user_name)?></td>
+            <td><?=$logged_user->user_name?></td>
           </tr>
           <tr>
             <td><b>Телефон:</b></td>
-            <td><?=htmlspecialchars($logged_user->phone)?></td>
+            <td><?=$logged_user->phone?></td>
           </tr>
           <tr>
             <td><b>E-mail:</b></td>
-            <td><?=htmlspecialchars($logged_user->email)?></td>
+            <td><?=$logged_user->email?></td>
           </tr>
           <?php if (isset($client)) : ?>
           <tr>
             <td><b>Баланс:</b></td>
-            <td><?=htmlspecialchars($client->balance)?></td>
+            <td><?=$client->balance?></td>
           </tr>
           <tr>
             <td><b>Бонусы:</b></td>
-            <td><?=htmlspecialchars($client->bonus_count)?></td>
+            <td><?=$client->bonus_count?></td>
           </tr>
           <?php endif ?>
         </table>
 
         <?php if (isset($client)) : ?>
-        <a href="delete.php" onclick="return window.confirm('Вы точно хотите удалить данный аккаунт?');">Удалить аккаунт</a>
+          <a href="add_balance_form.php">Пополнить баланс</a>
+          <br><br>
+          <a href="delete.php" onclick="return window.confirm('Вы точно хотите удалить данный аккаунт?');">Удалить аккаунт</a>
         <?php endif ?>
       </div>
     </div>
@@ -105,6 +101,10 @@
 
 <div class="container-index">
   <?php 
+    if (isset($_SESSION['products_query'])) {
+      $products_query = $_SESSION['products_query'];
+      unset($_SESSION['products_query']);
+    }
     if (!isset($products_query) && !$is_add && !$is_edit) {
       $products_query = pg_query($conn, "SELECT * FROM products");
     }

@@ -1,17 +1,17 @@
 <?php
   require 'connect.php';
 
+  if (!isset($moderator)) {
+    die('Неверный запрос');
+  }
+
   $data = $_POST;
 
   if (isset($data['id'])) {
     $product_id = $data['id'];
     $product_name = $data['product_name'];
     $product_desc = $data['product_desc'];
-    if (isset($data['image_path'])) {
-      $image_path = $data['image_path'];
-    } else {
-      $image_path = '';
-    }
+    
     $subcategory_id = $data['subcategory_id'];
     $price = $data['price'];
     $quantity_in_stock = $data['quantity_in_stock'];
@@ -21,6 +21,14 @@
       $query_new_product = pg_query_params($conn, 'INSERT INTO products(product_name, product_desc, image_path, subcategory_id, price, quantity_in_stock, additional_bonus_count) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;', Array($product_name, $product_desc, $image_path, $subcategory_id, $price, $quantity_in_stock, $additional_bonus_count));
       $product = pg_fetch_object($query_new_product);
       $product_id = $product->id;
+
+      if (isset($data['tmp_image_name'])) {
+        $image_path = "products/image_path$product_id";
+        move_uploaded_file($data['tmp_image_name'], $image_path);
+        $query_update_product = pg_query_params($conn, 'UPDATE products SET image_path = $1 WHERE id = $2', Array($image_path, $product_id));
+      } else {
+        $image_path = '';
+      }
 
       $query_property_types = pg_query_params($conn, 'SELECT * FROM property_types WHERE subcategory_id = $1', Array($subcategory_id));
       while ($property_type = pg_fetch_object($query_property_types)) {
@@ -32,6 +40,16 @@
 
       $_SESSION['op_message'] = 'Товар добавлен';
     } elseif (isset($data['update_product'])) {
+      if (isset($data['tmp_image_name'])) {
+        $filename = $data['tmp_image_name'];
+        echo $filename;
+        $image_path = "products/image_path$product_id" . $filename;
+        echo $image_path;
+        move_uploaded_file($filename, $image_path);
+      } else {
+        $image_path = '';
+      }
+      echo $image_path;
       $query_old_product = pg_query_params($conn, 'SELECT * FROM products WHERE id = $1', Array($product_id));
       $old_product = pg_fetch_object($query_old_product);
       $old_subcategory_id = $old_product->subcategory_id;
@@ -46,7 +64,11 @@
           $query_new_property_type_id = pg_query_params($conn, 'SELECT properties.id as property_id, property_types.id as property_type_id FROM property_types INNER JOIN properties ON property_types.id = properties.property_type_id WHERE subcategory_id = $1 AND product_id = $2 AND properties.id = $3;', Array($subcategory_id, $product_id, $property_data->property_id));
           $new_property_type_id = pg_fetch_object($query_new_property_type_id);
 
-          $query_new_property = pg_query_params($conn, 'UPDATE properties SET property_type_id = $new_property_type_id->property_type_id, product_id = $product_id, property_value = $1 WHERE id = $2;', Array($property_value, $property_data->property_id));
+          echo $property_value;
+          echo '<br>';
+          echo $property_data->property_id;
+
+          $query_new_property = pg_query_params($conn, 'UPDATE properties SET property_type_id = $1, product_id = $2, property_value = $3 WHERE id = $4;', Array($new_property_type_id->property_type_id, $product_id, $property_value, $property_data->property_id));
         }
       }
 

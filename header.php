@@ -11,3 +11,15 @@
   <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
+
+<?php
+  function site_message() {
+    if (isset($_SESSION['op_message'])) {
+      echo '<div style="color: white; ">' . $_SESSION['op_message'] . '</div><hr>';
+      unset($_SESSION['op_message']);
+    } else if (isset($_SESSION['op_message_error'])) {
+      echo '<div style="color: red; ">' . $_SESSION['op_message_error'] . '</div><hr>';
+      unset($_SESSION['op_message_error']);
+    }
+  }
+?>

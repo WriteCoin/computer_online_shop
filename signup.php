@@ -9,13 +9,13 @@
   if (isset($data['do_signup'])) {
     $errors = array();
 
-    $user_name = $data['user_name'];
-    $phone = $data['phone'];
-    $email = $data['email'];
-    $first_name = $data['first_name'];
-    $last_name = $data['last_name'];
-    $user_password = $data['user_password'];
-    $user_password2 = $data['user_password2'];
+    $user_name = $secure_data($data['user_name']);
+    $phone = $secure_data($data['phone']);
+    $email = $secure_data($data['email']);
+    $first_name = $secure_data($data['first_name']);
+    $last_name = $secure_data($data['last_name']);
+    $user_password = $secure_data($data['user_password']);
+    $user_password2 = $secure_data($data['user_password2']);
 
     if (trim($user_name) == '') {
       $errors[] = "Введите логин!";
@@ -99,8 +99,6 @@
       $new_client_query = pg_query_params($conn, 'INSERT INTO clients(person_id) VALUES ($1);', Array($new_user->id));
       $client_query = pg_query_params($conn, 'SELECT * FROM clients WHERE person_id = $1;', Array($new_user->id));
       $new_client = pg_fetch_object($client_query);
-
-      $new_basket_query = pg_query_params($conn, 'INSERT INTO baskets(client_id) VALUES ($1);', Array($new_client->id));
 
       echo '<div style="color: green; ">Вы успешно зарегистрированы! Можно <a href="login.php">авторизоваться</a>.</div><hr>';
     } else {

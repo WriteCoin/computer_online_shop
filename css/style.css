@@ -11,14 +11,15 @@ body {
 }
 
 .container-index {
-  max-width: 1250px;
+  max-width: 850px;
   margin: auto;
   padding-top: 50px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1300) {
   .container-index {
     max-width: 500px;
+    width: 500px;
     margin: auto;
     padding-top: 15px;
   }
@@ -80,6 +81,9 @@ h1 {
 .btn:hover {
   opacity: 0.9;
 }
+.btn:disabled {
+  background: white;
+}
 .table {
   width: 100%;
 }
@@ -88,7 +92,7 @@ h1 {
 } */
 .layer-left {
   font-size: 20px;
-  top: 20%;
+  top: 25%;
   left: 1%;
   width: 13%;
   position: fixed;
@@ -102,13 +106,13 @@ h1 {
   overflow-y: scroll;
   z-index: 1;
   transition: top 0.3s;
-  height: 500px;
+  height: 400px;
 }
 
 .layer-right {
   font-size: 20px;
   top: 20%;
-  left: 84%;
+  left: 83%;
   width: 13%;
   position: fixed;
   margin-left: auto;
@@ -126,8 +130,22 @@ h1 {
 }
 
 .layer-nav {
-  top: 7%;
+  top: 10%;
   left: 1%;
+  font-size: 20px;
+  position: fixed;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  border: 1px solid black;
+  box-shadow: 4px 4px 14px rgba(0, 0, 0, 0.25);
+  background-color: lightyellow;
+  padding: 15px;
+  border-radius: 20px;
+}
+
+.layer-nav-right {
+  top: 10%;
+  left: 83%;
   font-size: 20px;
   position: fixed;
   margin-top: 10px;
