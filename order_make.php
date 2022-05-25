@@ -1,3 +1,5 @@
+<?php try { ?>
+
 <?php
   $title = 'Sschot';
 
@@ -11,8 +13,23 @@
   function header_ret() {
     header('Location: order_make_form.php');
   }
-  
-  $order_id = $_POST['order_id'];
+
+  if (isset($_POST['order_id'])) {
+    $order_id = $_POST['order_id'];
+  } else {
+    $query_order_max_id = pg_query($conn, 'SELECT MAX(id) FROM orders');
+    $order_max_id = pg_fetch_object($query_order_max_id);
+    // print_r($order_max_id);
+
+    if ($order_max_id->max) {
+      // print($order_max_id);
+      // print_r($order_max_id);
+
+      $order_id = $order_max_id->max + 1;
+    } else {
+      $order_id = 1;
+    }
+  }
   if (!isset($_POST['is_pay'])) {
     $contact_name = $_POST['contact_name'];
     $contact_email = $_POST['contact_email'];
@@ -38,12 +55,15 @@
     $payment_method = $_POST['payment_method'];
     if ($way_to_receive == 'Доставка') {
       $date_of_receipt = $_POST['date_of_receipt'];
+      $date_of_receipt_date = get_date($date_of_receipt);
+      $receipt_time = $date_of_receipt_date->format('Y-m-d H:i:00');
     } else {
       $date_of_receipt_date = $_POST['date_of_receipt_date'];
       $date_of_receipt_time = $_POST['date_of_receipt_time'];
       // echo '<br>' . $date_of_receipt_date . '<br>';
       // echo '<br>' . $date_of_receipt_time . '<br>';
       $date_of_receipt = $date_of_receipt_date . 'T' . $date_of_receipt_time;
+      $receipt_time = $date_of_receipt_date . ' ' . $date_of_receipt_time;
     }
 
     $query_last_client_order = pg_query_params($conn, 'SELECT MAX(id), reg_date FROM orders WHERE client_id = $1 GROUP BY reg_date', Array($client->id));
@@ -101,25 +121,40 @@
 
     $query_client_products = pg_query_params($conn, 'SELECT * FROM client_products WHERE client_id = $1', Array($client->id));
     $products_ids_str = implode(', ', $products_ids);
-    $query_products = pg_query($conn, "SELECT * FROM products WHERE id IN ($products_ids_str)");
+    $query_products_sql = "SELECT * FROM products WHERE id IN ($products_ids_str)";
+    $query_products = pg_query($conn, $query_products_sql);
     $properties_ids_str = implode(', ', $properties_ids);
-    $query_properties = pg_query($conn, "SELECT * FROM properties WHERE product_id IN ($properties_ids_str)");
+    $query_properties_sql = "SELECT * FROM properties WHERE product_id IN ($properties_ids_str)";
+    $query_properties = pg_query($conn, $query_properties_sql);
+
+    // print_r($products_data);
 
     while ($product = pg_fetch_assoc($query_products)) {
       foreach ($product as $key => $value) {
-        if ($products_data[$key] != $value) {
-          $_SESSION['op_message_error'] = 'К сожалению, при оформлении заказа товары были изменены. Их состояние вы можете просмотреть на <a href="index.php"> главной странице</a>.';
-          $_SESSION['products_query'] = $query_products;
-          header_ret();
+        if ($key != 'id') {
+          $id = $product['id'];
+          // echo '<br>' . $product['id'] . '<br>';
+          // echo '<br>' . $id . '<br>';
+          // echo '<br>' . $key . '<br>';
+          // echo $products_data['3']['product_name'];
+          // echo $products_data[$id][$key];
+          if ($products_data[$id][$key] != $value) {
+            $_SESSION['op_message_error'] = 'К сожалению, при оформлении заказа товары были изменены. Их состояние вы можете просмотреть на <a href="index.php"> главной странице</a>.';
+            $_SESSION['products_query'] = pg_query($conn, $query_products_sql);
+            // print_r($_SESSION['products_query']);
+            header_ret();
+          }
         }
       }
     }
-    while ($property = pg_fetch_asoc($query_properties)) {
+    while ($property = pg_fetch_assoc($query_properties)) {
       foreach ($property as $key => $value) {
-        if ($properties_data[$key] != $value) {
-          $_SESSION['op_message_error'] = 'К сожалению, при оформлении заказа товары были изменены. Их состояние вы можете просмотреть на <a href="index.php"> главной странице</a>.';
-          $_SESSION['products_query'] = $query_products;
-          header_ret();
+        if ($key != 'id') {
+          if ($properties_data[$property['id']][$key] != $value) {
+            $_SESSION['op_message_error'] = 'К сожалению, при оформлении заказа товары были изменены. Их состояние вы можете просмотреть на <a href="index.php"> главной странице</a>.';
+            $_SESSION['products_query'] = $pg_query($conn, $query_properties_sql);
+            header_ret();
+          }
         }
       }
     }
@@ -133,7 +168,11 @@
 
     $final_price = $order_price - $discount + $delivery_price;
 
-    $order_id = order_add($order_id, $contact_name, $contact_email, $contact_phone, $way_to_receive, $payment_method, $delivery_address, $point_of_issue, $date_of_receipt, $final_price);
+    $order_id = order_add($order_id, $contact_name, $contact_email, $contact_phone, $way_to_receive, $payment_method, $delivery_address, $point_of_issue, $date_of_receipt, $final_price, $receipt_time);
+
+    if (!$order_id) {
+      die('Ошибка запроса');
+    }
   } else {
     $final_price = $_POST['final_price'];
   }
@@ -174,23 +213,41 @@
 
 <?php
   else :
-    if ($payment_method == 'Онлайн' && $client->balance < $final_price) {
-      $_SESSION['op_message_error'] = 'Недостаточно баланса для оплаты';
-      header_ret();
+    if ($payment_method == 'Онлайн') {
+      if ($client->balance < $final_price) {
+        $_SESSION['op_message_error'] = 'Недостаточно баланса для оплаты';
+        header_ret();
+      }
     }
 
-    try {
-      $order_products = order_add_client_products($order_id, $client_products_data);
-
-      $_SESSION['op_message'] = 'Заказ оформлен. Его состояние вы можете отследить в разделе <a href="my_orders.php">Мои заказы</a>.';
-      header('Location: index.php');
-    } catch (Error $ex) {
-      $_SESSION['op_message_error'] = 'Ошибка запроса';
-      order_delete($order_id);
-      header_ret();
+    $order_products = order_add_client_products($order_id, $client_products_data);
+    
+    foreach ($products_data as $id => $product) {
+      $query_quantity = pg_query_params($conn, 'SELECT quantity FROM client_products WHERE client_id = $1 AND product_id = $2', Array($client->id, $id));
+      $quantity = pg_fetch_object($query_quantity)->quantity;
+      $query_update_product_quantity = pg_query_params($conn, "UPDATE products SET quantity = $1 WHERE id = $2", Array($product['quantity'] - $quantity, $id));
     }
+    $query_delete_products_client = pg_query_params($conn, "DELETE FROM client_products WHERE client_id = $1", Array($client->id));
+    
+    if ($payment_method == 'Онлайн') {
+      $query_update_balance = pg_query_params($conn, 'UPDATE clients SET balance = $1 WHERE id = $2', Array($client->balance - $final_price, $client->id));
+    }
+
+    // $query_update_bonus_count = pg_query_params($conn, 'UPDATE clients SET bonus_count = $1 WHERE id = $2', Array($client->bonus_count + $order_bonuses, $client->id));
+
+    $_SESSION['op_message'] = 'Заказ оформлен. Его состояние вы можете отследить в разделе <a href="my_orders.php">Мои заказы</a>.';
+    header('Location: index.php');
     
   endif
 ?>
 
 <?php require 'footer.php'; ?>
+
+<?php } catch (Error $ex) {
+    echo "Произошла ошибка:<br>";
+    echo $ex . "<br>";
+  } catch (Throwable $ex) {
+    echo "Ошибка при выполнении программы:<br>";
+    echo $ex . "<br>";
+  }
+?>

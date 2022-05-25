@@ -35,12 +35,12 @@
   //   echo "<p>id товара $client_product->product_id; количество - $client_product->quantity<br />";
   // }
 
-  $query_order_max_id = pg_query($conn, 'SELECT MAX(id) FROM orders');
-  $order_max_id = pg_fetch_object($query_order_max_id);
+  // $query_order_max_id = pg_query($conn, 'SELECT MAX(id) FROM orders');
+  // $order_max_id = pg_fetch_object($query_order_max_id);
 
-  if (isset($order_max_id)) {
-    $order_max_id = 1;
-  }
+  // if (isset($order_max_id)) {
+  //   $order_max_id = 1;
+  // }
 
   $query_payment_methods = pg_query($conn, "SELECT * FROM payment_methods");
   
@@ -152,7 +152,7 @@
 
   <div class="layer-index">
     <form id="order-form" action="order_make.php" method="post">
-      <h4>Заказ №<?= $order_max_id ?></h4>
+      <!-- <h4>Заказ №<?= $order_max_id ?></h4> -->
 
       <div class="layer">
         <h4>Контактные данные</h4>
@@ -194,7 +194,7 @@
 
         <div class="form-group">
           <label for="delivery_address">
-            <?php if (isset($is_delivery)) : ?>
+            <?php if (isset($point_of_issue) && $way_to_receive_name == 'Самовывоз') : ?>
               Адрес доставки (укажите адрес):
             <?php elseif (isset($is_pickup)) : ?>
               Адрес доставки (выберите пункт выдачи):
@@ -222,7 +222,7 @@
           <select name="payment_method" id="payment_method">
             <?php while ($payment_method = pg_fetch_object($query_payment_methods)) : ?>
               <option value="<?= $payment_method->payment_method_name ?>"
-                <?php if ($payment_method->payment_method_name == $payment_method || $payment_method->id == $payment_method) : ?>
+                <?php if ($payment_method->id == $payment_method || $payment_method->payment_method_name == $payment_method) : ?>
                   selected
                 <?php endif ?>
               >
@@ -263,7 +263,7 @@
       <?php while ($data = pg_fetch_assoc($query_client_products)) : ?>
         <?php foreach ($data as $key => $value) { ?>
           <?php if ($key != 'id') : ?>
-            <input type="hidden" name="client_products[<?= $data['id'] ?>]['<?= $key ?>']" value="<?= $value ?>">
+            <input type="hidden" name="client_products[<?= $data['id'] ?>][<?= $key ?>]" value="<?= $value ?>">
           <?php endif ?>
         <?php } ?>
       <?php endwhile ?>
@@ -271,7 +271,7 @@
       <?php while ($data = pg_fetch_assoc($query_products)) : ?>
         <?php foreach ($data as $key => $value) { ?>
           <?php if ($key != 'id') : ?>
-            <input type="hidden" name="products[<?= $data['id'] ?>]['<?= $key ?>']" value="<?= $value ?>">
+            <input type="hidden" name="products[<?= $data['id'] ?>][<?= $key ?>]" value="<?= $value ?>">
           <?php endif ?>
         <?php } ?>
       <?php endwhile ?>
@@ -279,12 +279,12 @@
       <?php while ($data = pg_fetch_assoc($query_properties_products)) : ?>
         <?php foreach ($data as $key => $value) { ?>
           <?php if ($key != 'id') : ?>
-            <input type="hidden" name="properties[<?= $data['id'] ?>]['<?= $key ?>']" value="<?= $value ?>">
+            <input type="hidden" name="properties[<?= $data['id'] ?>][<?= $key ?>]" value="<?= $value ?>">
           <?php endif ?>
         <?php } ?>
       <?php endwhile ?>
 
-      <input type="hidden" name="order_id" value="<?= $order_max_id ?>">
+      <!-- <input type="hidden" name="order_id" value="<?= $order_max_id ?>"> -->
 
       <button class="btn" type="submit"
         <?php if (isset($no_points)) : ?>

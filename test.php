@@ -1,4 +1,7 @@
+<?php try { ?>
+
 <?php
+
   header('Refresh: 5');
 
   $time = '18:00';
@@ -60,3 +63,15 @@
   <input type="datetime-local" name="datetime" value="<?= $datetime ?>">
   <button type="submit">Отправить</button>
 </form>
+
+<?php } catch (ParseError $ex) { 
+    echo $ex . "<br>";
+    throw new Exception("Произошла ошибка");
+  } catch (Error $ex) {
+    echo $ex . "<br>";
+    throw new Exception("Произошла ошибка");
+  } catch (Throwable $ex) {
+    echo $ex . "<br>";
+    throw new Exception("Ошибка при выполнении программы");
+  }
+?>

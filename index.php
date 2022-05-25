@@ -106,7 +106,18 @@
       unset($_SESSION['products_query']);
     }
     if (!isset($products_query) && !$is_add && !$is_edit) {
-      $products_query = pg_query($conn, "SELECT * FROM products");
+      if (isset($_GET['category'])) {
+        $subcategory_name = $_GET['category'];
+        $query_subcategory = pg_query_params($conn, "SELECT * FROM subcategories WHERE subcategory_name = $1", Array($subcategory_name));
+        $subcategory_data = pg_fetch_assoc($query_subcategory);
+
+        if (isset($subcategory_data['id'])) {
+          $products_query = pg_query_params($conn, "SELECT * FROM products WHERE subcategory_id = $1", Array($subcategory_data['id']));
+        }
+      }
+      if (!isset($products_query)) {
+        $products_query = pg_query($conn, "SELECT * FROM products");
+      }
     }
     if (!isset($title_product)) {
       $title_product = 'Список товаров';

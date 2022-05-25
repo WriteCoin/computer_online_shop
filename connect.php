@@ -139,22 +139,28 @@
     return $discount;
   }
 
-  function order_add($order_id, $contact_name, $contact_email, $contact_phone, $way_to_receive, $payment_method, $delivery_address, $point_of_issue, $date_of_receipt, $price) {
+  function order_add($order_id, $contact_name, $contact_email, $contact_phone, $way_to_receive, $payment_method, $delivery_address, $point_of_issue, $date_of_receipt, $price, $receipt_time) {
     global $client, $conn;
 
     $order_number = $order_id;
     $client_id = $client->id;
+    // print(gettype($way_to_receive));
+    // print(gettype($payment_method));
+    // print(gettype($point_of_issue));
     $way_to_receive_id = db_get_id_params('ways_to_receive', 'way_to_receive_name', $way_to_receive);
     $payment_method_id = db_get_id_params('payment_methods', 'payment_method_name', $payment_method);
-    $point_of_issue_id = ($point_of_issue) ? db_get_id_params('points_of_issue', 'address', $point_of_issue) : 0;
+    $point_of_issue_id = (gettype($point_of_issue) == 'string') ? db_get_id_params('points_of_issue', 'address', $point_of_issue) : 1;
     $reg_date_obj = get_date('');
-    $reg_date = $reg_date_obj->format('Y-m-dTH:i');
+    $reg_date = $reg_date_obj->format('Y-m-dTH:i:00');
+    $reg_time = $reg_date_obj->format('Y-m-d H:i:00');
     $order_status_id = db_get_id_params('order_statuses', 'order_status_name', 'В процессе подтверждения оператором');
 
-    $query_new_order = pg_query_params($conn, 'INSERT INTO orders(contact_name, order_number, contact_email, contact_phone, client_id, way_to_receive_id, payment_method_id, delivery_address, point_of_issue_id, reg_date, date_of_receipt, actual_date_of_receipt, order_status_id, price) VALUES ($1, $12, $2, $3, $4, $5, $6, $7, $8, $9, $10, $13, $11, $14)', Array($contact_name, $contact_email, $contact_phone, $client_id, $way_to_receive_id, $payment_method_id, $delivery_address, $point_of_issue_id, $reg_date, $date_of_receipt, $order_status_id, $order_number, $date_of_receipt, $price));
+    $query_insert_order = pg_query_params($conn, 'INSERT INTO orders(contact_name, order_number, contact_email, contact_phone, client_id, way_to_receive_id, payment_method_id, delivery_address, point_of_issue_id, reg_date, date_of_receipt, actual_date_of_receipt, order_status_id, price, reg_time, receipt_time, actual_receipt_time) VALUES ($1, $12, $2, $3, $4, $5, $6, $7, $8, $9, $10, $13, $11, $14, $15, $16, $17)', Array($contact_name, $contact_email, $contact_phone, $client_id, $way_to_receive_id, $payment_method_id, $delivery_address, $point_of_issue_id, $reg_date, $date_of_receipt, $order_status_id, $order_number, $date_of_receipt, $price, $reg_time, $receipt_time, $receipt_time));
+
+    $query_new_order = pg_query($conn, "SELECT MAX(id) FROM orders");
     $new_order = pg_fetch_object($query_new_order);
 
-    return $new_order;
+    return $new_order->max;
   }
 
   function order_delete($order_id) {
@@ -170,22 +176,22 @@
 
     $client_id = $client->id;
 
-    $order_products = [];
+    // $order_products = [];
 
     foreach ($client_products as $id => $client_product) {
       $product_id = $client_product['product_id'];
       $quantity = $client_product['quantity'];
 
-      $query_product_price = pg_query_params($conn, "SELECT price FROM products WHERE product_id = $1", Array($product_id));
+      $query_product_price = pg_query_params($conn, "SELECT price FROM products WHERE id = $1", Array($product_id));
       $product_price = pg_fetch_object($query_product_price);
       $price = $product_price->price;
 
       $query_new_product_of_order = pg_query_params($conn, 'INSERT INTO products_in_orders(order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)', Array($order_id, $product_id, $quantity, $price));
-      $new_product_of_order = pg_fetch_assoc($query_new_product_of_order);
-      $order_products[$new_product_of_order['id']] = $new_product_of_order;
+      // $new_product_of_order = pg_fetch_assoc($query_new_product_of_order);
+      // $order_products[$new_product_of_order['id']] = $new_product_of_order;
     }
 
-    return $order_products;
+    // return $order_products;
   }
 
   $conn = pg_connect("host=$host port=$port dbname=$dbname user=$user password=$password");

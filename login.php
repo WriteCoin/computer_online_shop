@@ -17,25 +17,31 @@
     if (!$user) {
       $errors[] = "Пользователь с таким логином не найден!";
     } else {
-      $client_query = pg_query_params($conn, 'SELECT * FROM clients WHERE person_id = $1;', Array($user->id));
-      $client = pg_fetch_object($client_query);
-
-      if (!$client) {
-        $errors[] = "Клиент не найден";
+      if ($user_role == 'client') {
+        $client_query = pg_query_params($conn, 'SELECT * FROM clients WHERE person_id = $1;', Array($user->id));
+        $client = pg_fetch_assoc($client_query);
+        
+        if (!isset($client['id'])) {
+          $errors[] = "Клиент не найден";
+        }
       }
 
-      $moderator_query = pg_query_params($conn, 'SELECT * FROM moderators WHERE person_id = $1', Array($user->id));
-      $moderator = pg_fetch_object($moderator_query);
-
-      if (!$moderator && $user_role == 'moderator') {
-        $errors[] = "Вы не зарегистрированы в системе как модератор";
+      if ($user_role == 'moderator') {
+        $moderator_query = pg_query_params($conn, 'SELECT * FROM moderators WHERE person_id = $1', Array($user->id));
+        $moderator = pg_fetch_assoc($moderator_query);
+        
+        if (!isset($moderator['id'])) {
+          $errors[] = "Вы не зарегистрированы в системе как модератор";
+        }
       }
 
-      $operator_query = pg_query_params($conn, 'SELECT * FROM operators WHERE person_id = $1', Array($user->id));
-      $operator = pg_fetch_object($operator_query);
-
-      if (!$operator && $user_role == "operator") {
-        $errors[] = "Вы не зарегистрированы в системе как оператор";
+      if ($user_role == 'operator') {
+        $operator_query = pg_query_params($conn, 'SELECT * FROM operators WHERE person_id = $1', Array($user->id));
+        $operator = pg_fetch_assoc($operator_query);
+        
+        if (!isset($operator['id'])) {
+          $errors[] = "Вы не зарегистрированы в системе как оператор";
+        }
       }
 
       if (empty($errors) && password_verify($user_password, $user->user_password)) {
@@ -75,9 +81,9 @@
       <p>
         <input type="radio" value="moderator" name="user_role"> Войти как модератор
       </p>
-      <p>
+      <!-- <p>
         <input type="radio" value="operator" name="user_role">  Войти как оператор
-      </p>
+      </p> -->
 
       <button class="btn" name="do_login" type="submit">Авторизоваться</button>
     </form>

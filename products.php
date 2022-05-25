@@ -185,6 +185,10 @@
     </form>
 
   <?php else : ?>
+    <?php if (!pg_num_rows($products_query)) : ?>
+      <p><i>Товаров не найдено</i></p>
+    <?php endif ?>
+
     <?php while ($product = pg_fetch_object($products_query)) : ?>
       <div class="layer">
         <form class="form-product" action="add_basket.php" method="post">

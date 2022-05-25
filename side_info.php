@@ -61,7 +61,15 @@
 			</form> -->
 		</div>
 	</div>
+<?php endif ?>
 
+<?php if (isset($operator)) : ?>
+	<div class="layer-nav">
+		<button class="btn-nav" onclick="document.location = 'delivery_points.php'">Пункты доставки</button>
+	</div>
+	<div class="layer-nav-right">
+		<button class="btn-nav" onclick="document.location = 'client_orders.php'">Заказы клиентов</button>
+	</div>
 <?php endif ?>
 
 <script type="text/javascript">
@@ -83,9 +91,3 @@
 	apply_height_detail('.layer-right', '50px', '350px')
 	apply_height_detail('.layer-left', '50px', '500px')
 </script>
-
-<?php if (isset($operator)) : ?>
-	<div class="layer-nav">
-		<button class="btn-nav" onclick="document.location = 'delivery_points.php'">Пункты доставки</button>
-	</div>
-<?php endif ?>
