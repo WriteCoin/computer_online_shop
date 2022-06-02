@@ -141,7 +141,7 @@
           </details>
         </p>
   
-        <button class="btn" type="submit" formaction="refund.php">Вернуть заказ</button>
+        <button class="btn" type="submit" disabled formaction="refund.php">Вернуть заказ</button>
       </form>
     </div>
   <?php endwhile ?>

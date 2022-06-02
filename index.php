@@ -99,7 +99,7 @@
   </div>
 <?php endif; ?>
 
-<div class="container-index">
+<div class="container">
   <?php 
     if (isset($_SESSION['products_query'])) {
       $products_query = $_SESSION['products_query'];

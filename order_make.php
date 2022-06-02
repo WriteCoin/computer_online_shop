@@ -11,7 +11,35 @@
   }
 
   function header_ret() {
-    header('Location: order_make_form.php');
+    die("Ошибка запроса");
+    // header('Location: order_make_form.php');
+  }
+
+  $client_products_data = $get_post('client_products', []);
+  $products_data = $get_post('products', []);
+
+  $way_to_receive = $get_post('way_to_receive', '');
+  if ($way_to_receive == 'Самовывоз') {
+    $point_of_issue = $_POST['point_of_issue'];
+    // echo '<br>' . $point_of_issue . '<br>';
+    // $delivery_address = substr($delivery_address, 0, strpos($delivery_address, ' ('));
+    $delivery_address = $point_of_issue;
+  } elseif ($way_to_receive == 'Доставка') {
+    $point_of_issue = null;
+    $delivery_address = $_POST['delivery_address'];
+  }
+  $payment_method = $get_post('payment_method', '');
+  if ($way_to_receive == 'Доставка') {
+    $date_of_receipt = $_POST['date_of_receipt'];
+    $date_of_receipt_date = get_date($date_of_receipt);
+    $receipt_time = $date_of_receipt_date->format('Y-m-d H:i:00');
+  } elseif ($way_to_receive == 'Самовывоз') {
+    $date_of_receipt_date = $_POST['date_of_receipt_date'];
+    $date_of_receipt_time = $_POST['date_of_receipt_time'];
+    // echo '<br>' . $date_of_receipt_date . '<br>';
+    // echo '<br>' . $date_of_receipt_time . '<br>';
+    $date_of_receipt = $date_of_receipt_date . 'T' . $date_of_receipt_time;
+    $receipt_time = $date_of_receipt_date . ' ' . $date_of_receipt_time;
   }
 
   if (isset($_POST['order_id'])) {
@@ -42,48 +70,40 @@
       $_SESSION['op_message_error'] = "Телефон задан в неверном формате. Пожалуйста, введите данные снова.";
       header_ret();
     }
-    $way_to_receive = $_POST['way_to_receive'];
-    if ($way_to_receive == 'Самовывоз') {
-      $point_of_issue = $_POST['point_of_issue'];
-      // echo '<br>' . $point_of_issue . '<br>';
-      // $delivery_address = substr($delivery_address, 0, strpos($delivery_address, ' ('));
-      $delivery_address = $point_of_issue;
-    } else {
-      $point_of_issue = null;
-      $delivery_address = $_POST['delivery_address'];
-    }
-    $payment_method = $_POST['payment_method'];
-    if ($way_to_receive == 'Доставка') {
-      $date_of_receipt = $_POST['date_of_receipt'];
-      $date_of_receipt_date = get_date($date_of_receipt);
-      $receipt_time = $date_of_receipt_date->format('Y-m-d H:i:00');
-    } else {
-      $date_of_receipt_date = $_POST['date_of_receipt_date'];
-      $date_of_receipt_time = $_POST['date_of_receipt_time'];
-      // echo '<br>' . $date_of_receipt_date . '<br>';
-      // echo '<br>' . $date_of_receipt_time . '<br>';
-      $date_of_receipt = $date_of_receipt_date . 'T' . $date_of_receipt_time;
-      $receipt_time = $date_of_receipt_date . ' ' . $date_of_receipt_time;
-    }
 
-    $query_last_client_order = pg_query_params($conn, 'SELECT MAX(id), reg_date FROM orders WHERE client_id = $1 GROUP BY reg_date', Array($client->id));
+    $query_last_client_order = pg_query_params($conn, 'SELECT MAX(id), reg_time FROM orders WHERE client_id = $1 GROUP BY reg_time', Array($client->id));
     $last_client_order = pg_fetch_object($query_last_client_order);
 
     if ($last_client_order) {
-      $last_order_date = get_date($last_client_order->reg_date);
+      $last_order_date = get_date($last_client_order->reg_time);
       $last_order_date_hours = $last_order_date->format('H');
       $last_order_date_day = $last_order_date->format('d');
+      $last_order_date_year = $last_order_date->format('Y');
       $date_next_make = get_date('');
       $date_next_make->add(new DateInterval('PT' . COOLDOWN_MAKE_ORDER . 'H'));
       $date_next_make_hours = $date_next_make->format('H');
       $date_next_make_day = $date_next_make->format('d');
+      $date_next_make_year = $date_next_make->format('Y');
 
-      if ($last_order_date_hours < $date_next_make_hours || ($last_order_date_day < $date_next_make_day)) {
-        $message_day = ($last_order_date_day != $date_next_make_day) ? ' следующего дня' : '';
-        $message = "Следующий заказ можно оформить в " . $date_next_make->format('H:i') . $message_day . '.';
-        $_SESSION['op_message_error'] = $message;
-        header_ret();
+      // echo $last_order_date_hours . '<br>';
+      // echo $date_next_make_hours . '<br>';
+      // echo $last_order_date_day . '<br>';
+      // echo $date_next_make_day . '<br>';
+
+      if ($date_next_make_year - $last_order_date_year == 0) {
+        if ($date_next_make_day - $last_order_date_day == 0) {
+          if ($date_next_make_hours - $last_order_date_hours < 2) {
+            $_SESSION['op_message_error'] = 'Подождите некоторое время, чтобы оформить следующий заказ';
+            header_ret();
+          }
+        }
       }
+      // if ($last_order_date_hours < $date_next_make_hours || ($last_order_date_day < $date_next_make_day)) {
+      //   $message_day = ($last_order_date_day != $date_next_make_day) ? ' следующего дня' : '';
+      //   $message = "Следующий заказ можно оформить в " . $date_next_make->format('H:i') . $message_day . '.';
+      //   $_SESSION['op_message_error'] = $message;
+      //   header_ret();
+      // }
     }
 
     if ($way_to_receive == 'Самовывоз') {
@@ -160,6 +180,8 @@
     }
     $order_price = money_to_num(get_client_products_price());
 
+    // echo get_client_products_bonuses() . '<br>';
+
     $order_bonuses = money_to_num(get_client_products_bonuses());
 
     $discount = get_price_discount($order_price);
@@ -175,6 +197,7 @@
     }
   } else {
     $final_price = $_POST['final_price'];
+    $order_bonuses = $_POST['order_bonuses'];
   }
 ?>
 
@@ -192,6 +215,20 @@
         <input type="hidden" name="is_pay" value="1">
         <input type="hidden" name="payment_method" value="<?= $payment_method ?>">
         <input type="hidden" name="final_price" value="<?= $final_price ?>">
+        <input type="hidden" name="order_bonuses" value="<?= $order_bonuses ?>">
+
+        <?php foreach ($_POST['client_products'] as $id => $client_product) { ?>
+          <?php foreach ($client_product as $key => $value) { ?>
+            <input type="hidden" name='client_products[<?= $id ?>][<?= $key ?>]' value="<?= $value ?>">
+          <?php } ?>
+        <?php } ?>
+
+        <?php foreach ($_POST['products'] as $id => $product) { ?>
+          <?php foreach ($product as $key => $value) { ?>
+            <input type="hidden" name="products[<?= $id ?>][<?= $key ?>]" value="<?= $value ?>">
+          <?php } ?>
+        <?php } ?>
+
         <button type="submit">Оплатить</button>
       </form>
     </div>
@@ -205,7 +242,7 @@
       setInterval(function() {
         time_elem.innerHTML = (--start_time).toString()
         if (start_time <= 0) {
-          document.location = 'order_make_form.php';
+          // document.location = 'order_make_form.php';
         }
       }, 1000)
     }
@@ -213,30 +250,49 @@
 
 <?php
   else :
-    if ($payment_method == 'Онлайн') {
-      if ($client->balance < $final_price) {
-        $_SESSION['op_message_error'] = 'Недостаточно баланса для оплаты';
-        header_ret();
+    try {
+      // echo $final_price . '<br>';
+      // echo money_to_num($client->balance) - $final_price . '<br>';
+      // echo $order_bonuses . '<br>';
+      // die('ost');
+
+      if ($payment_method == 'Онлайн') {
+        if ($client->balance < $final_price) {
+          $_SESSION['op_message_error'] = 'Недостаточно баланса для оплаты';
+          $query_delete_order = pg_query_params($conn, "DELETE FROM orders WHERE id = $1", Array($order_id));
+          header_ret();
+        }
       }
-    }
 
-    $order_products = order_add_client_products($order_id, $client_products_data);
-    
-    foreach ($products_data as $id => $product) {
-      $query_quantity = pg_query_params($conn, 'SELECT quantity FROM client_products WHERE client_id = $1 AND product_id = $2', Array($client->id, $id));
-      $quantity = pg_fetch_object($query_quantity)->quantity;
-      $query_update_product_quantity = pg_query_params($conn, "UPDATE products SET quantity = $1 WHERE id = $2", Array($product['quantity'] - $quantity, $id));
-    }
-    $query_delete_products_client = pg_query_params($conn, "DELETE FROM client_products WHERE client_id = $1", Array($client->id));
-    
-    if ($payment_method == 'Онлайн') {
-      $query_update_balance = pg_query_params($conn, 'UPDATE clients SET balance = $1 WHERE id = $2', Array($client->balance - $final_price, $client->id));
-    }
+      // print_r($client_products_data);
 
-    // $query_update_bonus_count = pg_query_params($conn, 'UPDATE clients SET bonus_count = $1 WHERE id = $2', Array($client->bonus_count + $order_bonuses, $client->id));
-
-    $_SESSION['op_message'] = 'Заказ оформлен. Его состояние вы можете отследить в разделе <a href="my_orders.php">Мои заказы</a>.';
-    header('Location: index.php');
+      // foreach ($client_products_data as $id => $client_product) {
+      //   print_r($client_product);
+      // }
+  
+      $order_products = order_add_client_products($order_id, $client_products_data);
+  
+      foreach ($products_data as $id => $product) {
+        $query_quantity = pg_query_params($conn, 'SELECT quantity FROM client_products WHERE client_id = $1 AND product_id = $2', Array($client->id, $id));
+        $quantity = pg_fetch_object($query_quantity)->quantity;
+        $query_update_product_quantity = pg_query_params($conn, "UPDATE products SET quantity_in_stock = $1 WHERE id = $2", Array($product['quantity_in_stock'] - $quantity, $id));
+      }
+      $query_delete_products_client = pg_query_params($conn, "DELETE FROM client_products WHERE client_id = $1", Array($client->id));
+      
+      if ($payment_method == 'Онлайн') {
+        $query_update_balance = pg_query_params($conn, 'UPDATE clients SET balance = $1 WHERE id = $2', Array(money_to_num($client->balance) - $final_price, $client->id));
+      }
+  
+      $query_update_bonus_count = pg_query_params($conn, 'UPDATE clients SET bonus_count = $1 WHERE id = $2', Array(money_to_num($client->bonus_count) + $order_bonuses, $client->id));
+  
+      $_SESSION['op_message'] = 'Заказ оформлен. Его состояние вы можете отследить в разделе <a href="my_orders.php">Мои заказы</a>.';
+      header('Location: index.php');
+    } catch (Error $err) {
+      pg_query($conn, "DELETE FROM products_in_orders WHERE order_id = $order_id");
+      pg_query($conn, "DELETE FROM orders WHERE id = $order_id");
+      pg_query($conn, "UPDATE clients SET balance = $client->balance");
+      header_ret();
+    }
     
   endif
 ?>

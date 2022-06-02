@@ -250,9 +250,9 @@
             </div> -->
   
             <div class="form-group">
+              <label for="delivery_address">Адрес доставки</label>
               <?php if ($is_pickup) : ?>
                 <?php if (!$no_points) : ?>
-                  <label for="delivery_address">Адрес доставки</label>
                   <select name="point_of_issue" id="delivery_address">
                     <?php while ($point_of_issue_obj = pg_fetch_object($query_points_of_issue)) : ?>
                       <option value="<?= $point_of_issue_obj->address ?>"

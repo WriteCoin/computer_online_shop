@@ -122,9 +122,9 @@
         </details>
       </div>
 
-      <div class="form-group">
+      <!-- <div class="form-group"> -->
         <!-- <form action="index.php" method="post" enctype="multipart/form-data"> -->
-          <label for="img">Изображение товара (не более <?= IMG_SIZE ?> МБ):</label>
+          <!-- <label for="img">Изображение товара (не более <?= IMG_SIZE ?> МБ):</label>
           <input type="file" id="img" name="img" value="<?= isset($img) ? $img : ''; ?>">
           <input type="submit" name="upload" value="Загрузить">
           <?php
@@ -153,9 +153,9 @@
               <input type="hidden" name="tmp_image_name" value="<?= $name ?>">
             <?php } elseif (!empty($id)) { ?>
               <img src="<?= $image_path ?>" alt="Изображение отсутствует">
-            <?php } ?>
+            <?php } ?> -->
         <!-- </form> -->
-      </div>
+      <!-- </div> -->
 
       <div class="form-group">
         <label for="product_desc">Описание товара:</label>
@@ -240,10 +240,10 @@
           <p><b>Описание товара:</b></p><br>
           <p><?= $product->product_desc; ?></p>
 
-          <input type="hidden" name="image_path" value="<?= $product->image_path; ?>">
+          <!-- <input type="hidden" name="image_path" value="<?= $product->image_path; ?>"> -->
           <!-- <p><b>Изображение товара:</b></p><br> -->
-          <?php $show_img = base64_encode($product->image_path); ?>
-          <img src="data:image/jpeg;base64, <?php echo $show_img; ?>" alt="Изображение отсутствует">
+          <!-- <?php $show_img = base64_encode($product->image_path); ?> -->
+          <!-- <img src="data:image/jpeg;base64, <?php echo $show_img; ?>" alt="Изображение отсутствует"> -->
 
           <?php
             $subcategory_query = pg_query_params($conn, 'SELECT * FROM subcategories WHERE id = $1', Array($product->subcategory_id));
@@ -269,6 +269,13 @@
               $client_product = pg_fetch_object($query_client_products);
               if ($client_product || (!$product->quantity_in_stock)) :
                 $is_disabled_button = "disabled";
+                if (!$product->quantity_in_stock) {
+                  $message = 'Нет в наличии';
+                  $in_basket = false;
+                } else {
+                  $message = 'Товар добавлен в корзину';
+                  $in_basket = true;
+                }
               else :
                 $is_disabled_button = "";
               endif
@@ -277,9 +284,11 @@
               <button class="btn" id="product-button1" name="to_basket_product" type="submit" <?= $is_disabled_button ?> onClick="return window.cofirm('onClick сраный');">Добавить в корзину</button>
             <!-- <button class="btn" id="product-button1" name="to_basket_product" <?= $is_disabled_button ?> type="submit">Добавить товар в корзину</button> -->
               <?php if ($is_disabled_button) : ?> 
-                <i>Товар добавлен в корзину</i> 
+                <i><?= $message ?></i> 
                 <br><br>
-                <button class="btn" name="to_remove_basket" type="submit">Удалить из корзины</button>
+                <?php if ($in_basket) : ?>
+                  <button class="btn" name="to_remove_basket" type="submit">Удалить из корзины</button>
+                <?php endif ?>
               <?php endif ?>
             </p>
           <?php elseif (isset($moderator)) : ?>

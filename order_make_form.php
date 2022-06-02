@@ -14,8 +14,25 @@
   $way_to_receive = $get_post('way_to_receive', 1);
   $payment_method = $get_post('payment_method', 1);
   $delivery_address = $get_post('delivery_address', '');
-  $point_of_issue_id = $get_post('point_of_issue_id', 1);
+  $point_of_issue = $get_post('point_of_issue', '');
+  // $point_of_issue_id = $get_post('point_of_issue_id', 1);
   $date_of_receipt = $get_post('date_of_receipt', '');
+
+  // echo $point_of_issue;
+  if ($point_of_issue) {
+    // $query = pg_query($conn, "SELECT * FROM points_of_issue");
+    // print_r(pg_fetch_assoc($query));
+    $point_of_issue = $secure_data($point_of_issue);
+    // echo $point_of_issue;
+    $query_point_of_issue_id = pg_query($conn, "SELECT id FROM points_of_issue WHERE address = '$point_of_issue'");
+    // echo $query_point_of_issue_id;
+    $point_of_issue_arr = pg_fetch_assoc($query_point_of_issue_id);
+    // echo $query_point_of_issue_obj;
+    // print_r($point_of_issue_arr);
+    $point_of_issue_id = $point_of_issue_arr['id'];
+  } else {
+    $point_of_issue_id = 1;
+  }
 
   $query_client_products = pg_query_params($conn, 'SELECT * FROM client_products WHERE client_id = $1', Array($client->id));
   // $client_products = pg_fetch_assoc($query_client_products);
@@ -23,7 +40,14 @@
   while ($client_product = pg_fetch_assoc($query_client_products)) {
     $products_ids[] = $client_product['product_id'];
   }
-  $products_ids_str = count($products_ids) ? implode(', ', $products_ids) : '';
+  // print_r($products_ids);
+  if (count($products_ids) == 1) {
+    $products_ids_str = "$products_ids[0]";
+  } else {
+    $products_ids_str = count($products_ids) ? implode(', ', $products_ids) : '';
+    $products_ids_str = substr($products_ids_str, 0, strlen($products_ids_str) - 2);
+  }
+  // echo $products_ids_str . "<br>";
   $query_products = pg_query($conn, "SELECT * FROM products WHERE id IN ($products_ids_str)");
   $query_properties_products = pg_query($conn, "SELECT * FROM properties WHERE product_id IN ($products_ids_str)");
 
@@ -194,10 +218,10 @@
 
         <div class="form-group">
           <label for="delivery_address">
-            <?php if (isset($point_of_issue) && $way_to_receive_name == 'Самовывоз') : ?>
-              Адрес доставки (укажите адрес):
-            <?php elseif (isset($is_pickup)) : ?>
+            <?php if (isset($is_pickup)) : ?>
               Адрес доставки (выберите пункт выдачи):
+            <?php elseif (isset($is_delivery)) : ?>
+              Адрес доставки (укажите адрес):
             <?php endif ?>
           </label>
           <?php if (isset($is_delivery)) : ?>

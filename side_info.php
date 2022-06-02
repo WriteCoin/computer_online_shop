@@ -31,7 +31,7 @@
 <?php endif ?>
 
 <?php if (isset($moderator)) : ?>
-	<div class="layer-right">
+	<!-- <div class="layer-right">
 		<details>
 			<summary><b>Информация о типах характеристик:</b></summary>
 			<p>Узнать о всех типах характеристик <a href="property_types_info.php">здесь</a>.</p>
@@ -49,7 +49,7 @@
 				</ul>
 			<?php endwhile ?>
 		</details>
-	</div>
+	</div> -->
 
 	<div class="layer-nav">
 		<div class="form-group-nav">

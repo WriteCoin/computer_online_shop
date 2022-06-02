@@ -178,9 +178,18 @@
 
     // $order_products = [];
 
+    // print_r($client_products);
+
     foreach ($client_products as $id => $client_product) {
-      $product_id = $client_product['product_id'];
-      $quantity = $client_product['quantity'];
+      // echo $client_product . "<br>";
+      // print_r($client_product);
+      foreach ($client_product as $key => $value) {
+        echo $key . " " . $value . "<br>";
+      }
+      $product_id = $client_product["product_id"];
+      $quantity = $client_product["quantity"];
+
+      echo $product_id . '<br>';
 
       $query_product_price = pg_query_params($conn, "SELECT price FROM products WHERE id = $1", Array($product_id));
       $product_price = pg_fetch_object($query_product_price);
